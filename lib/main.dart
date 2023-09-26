@@ -1,15 +1,19 @@
-import 'dart:ffi';
+// ignore_for_file: prefer_const_constructors, no_leading_underscores_for_local_identifiers, await_only_futures, camel_case_types, must_be_immutable
 
+import 'dart:convert';
+import 'dart:ffi';
+import 'package:http/http.dart' as http;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_countdown_timer/flutter_countdown_timer.dart';
 import 'package:flutter_countdown_timer/index.dart';
-import 'package:getwidget/getwidget.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
+//https://www.oneclickonedollar.com/laravel_kfa_2023/public/api/get_all_Sale_all_2
+//https://www.oneclickonedollar.com/laravel_kfa_2023/public/api/user_VPoint
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -23,50 +27,91 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const tes(),
+      home: tes(
+          url:
+              'https://www.oneclickonedollar.com/laravel_kfa_2023/public/api/user_VPoint'),
     );
   }
 }
 
-class tes extends StatelessWidget {
-  const tes({super.key});
+class tes extends StatefulWidget {
+  tes({super.key, required this.url});
+  String? url;
+  @override
+  State<tes> createState() => _tesState();
+}
+
+class _tesState extends State<tes> {
+  List list = [];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(),
-      body: Center(
-        child: TextButton(
-          onPressed: () {
-            var data = showDialog(
-                context: context,
-                builder: (context) => const KFA_Dialog(
-                      call_post_api: true,
-                      // check: true,
-                      details:
-                          "kokokokokookookookookookookookookookookookookookookookookookook",
-                    ));
-          },
-          child: Text("kokoko"),
-        ),
+    return Scaffold(appBar: AppBar(), body: _body(context));
+  }
+
+  Widget _center(BuildContext context) {
+    return Center(
+      child: TextButton(
+        onPressed: () {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return KFA_Dialog(
+                  url:
+                      'https://www.oneclickonedollar.com/laravel_kfa_2023/public/api/user_VPoint',
+                  list_back: (value) {
+                    setState(() {
+                      list = value;
+                      print('List back = $list');
+                    });
+                  },
+                  call_post_api: true,
+                  body: const {
+                    2: 'helium',
+                    10: 'neon',
+                    18: 'argon',
+                  },
+                  // call_get_api: true,
+                  // check: true,
+                  details: "",
+                );
+              });
+        },
+        child: Text("kokoko"),
+      ),
+    );
+  }
+
+  Widget _body(BuildContext context) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [_center(context), Text('List = ${list}')],
       ),
     );
   }
 }
 
+typedef OnChangeCallback = void Function(dynamic value);
+
 class KFA_Dialog extends StatefulWidget {
-  const KFA_Dialog(
+  KFA_Dialog(
       {super.key,
+      this.body,
       this.call_get_api,
       this.call_post_api,
       this.details,
       this.seconds,
-      this.check});
+      this.check,
+      this.url,
+      this.list_back});
   final bool? call_get_api;
   final bool? call_post_api;
   final String? details;
+  final String? url;
   final Double? seconds;
   final bool? check;
+  final Map? body;
+  OnChangeCallback? list_back;
   @override
   State<KFA_Dialog> createState() => _KFA_DilogState();
 }
@@ -93,15 +138,23 @@ class _KFA_DilogState extends State<KFA_Dialog> with TickerProviderStateMixin {
     if (widget.check == null) {
       setState(() {
         endTime = DateTime.now().millisecondsSinceEpoch +
-            const Duration(seconds: 3).inMilliseconds;
+            const Duration(seconds: 7).inMilliseconds;
       });
+    }
+    if (widget.call_get_api != null) {
+      get(widget.url);
+    }
+    if (widget.call_get_api == null) {
+      post(widget.url, widget.body!);
     }
     _controller = CountdownTimerController(endTime: endTime, onEnd: onEnd);
   }
 
+  bool b = false;
   void onEnd() {
-    print('onEnd');
     setState(() {
+      print('onEnd');
+      b = true;
       controller.dispose();
       showalert = true;
       Navigator.pop(context);
@@ -109,6 +162,13 @@ class _KFA_DilogState extends State<KFA_Dialog> with TickerProviderStateMixin {
         _controller.disposeTimer();
       } else {
         _controller.start();
+      }
+      //Await list back
+      if (b == true) {
+        widget.list_back!(list);
+        print('Value');
+      } else {
+        print('No');
       }
     });
   }
@@ -299,5 +359,37 @@ class _KFA_DilogState extends State<KFA_Dialog> with TickerProviderStateMixin {
         );
       },
     );
+  }
+
+  List list = [];
+  Future<void> get(url) async {
+    var rs = await http.get(
+      Uri.parse('$url'),
+    );
+    if (rs.statusCode == 200) {
+      setState(() {
+        var jsonData = jsonDecode(rs.body);
+        list = jsonData;
+        print('Get Ready');
+      });
+    }
+  }
+
+  void post(_url, Map body) async {
+    Map<String, dynamic> payload = {
+      'id_ptys': '',
+    };
+    final url = await Uri.parse('');
+    final response = await http.post(
+      url,
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(body),
+    );
+
+    if (response.statusCode == 200) {
+      print('Success value Sale');
+    } else {
+      print('value_property: ${response.reasonPhrase}');
+    }
   }
 }
